@@ -1,0 +1,859 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="utf-8" />
+  <title>FIT3179 – Malaysia Socioeconomic Wellbeing</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <script src="https://cdn.jsdelivr.net/npm/vega@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-lite@5"></script>
+  <script src="https://cdn.jsdelivr.net/npm/vega-embed@6"></script>
+
+  <style>
+    /* ========= THEME ========= */
+    :root {
+      --pagew: 1200px;
+      --bg: #e9edf2;
+      --ink: #212529;
+      --muted: #6b7280;
+      --brand: #0f5cc0;
+      --card: #ffffff;
+      --card-head: #f6f7f9;
+      --border: #d9dee5;
+      --shadow: 0 10px 28px rgba(0, 0, 0, .08);
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      background: var(--bg);
+      color: var(--ink);
+      font: 15px/1.55 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+    }
+
+    .page {
+      max-width: 1500px;
+      margin: 18px auto 48px;
+      padding: 0 16px;
+    }
+
+    /* ========= MASTHEAD ========= */
+    .masthead {
+      background: #111827;
+      color: #fff;
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      padding: 26px 28px;
+      margin-bottom: 20px;
+      text-align: center;
+    }
+
+    .masthead h1 {
+      margin: 0;
+      font: 700 48px/1.15 ui-serif, Georgia, Times, serif;
+      letter-spacing: .4px
+    }
+
+    /* ========= CARDS ========= */
+    .card {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      box-shadow: var(--shadow);
+      padding: 18px 22px 22px;
+      margin: 18px 0 26px;
+    }
+
+    .card__title {
+      font: 700 18px/1.3 ui-serif, Georgia, Times, serif;
+      padding: 10px 12px;
+      margin: -6px -12px 12px;
+      background: var(--card-head);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+    }
+
+    .lead {
+      margin: 6px 0 -5px;
+      color: #2f3136
+    }
+
+    h2 {
+      font: 700 22px/1.25 ui-serif, Georgia, Times, serif;
+      margin: 6px 0 10px
+    }
+
+    h3 {
+      font: 700 16px/1.35 ui-serif, Georgia, Times, serif;
+      margin: 8px 0 8px
+    }
+
+    .caption,
+    .meta,
+    .note small {
+      color: var(--muted);
+      font-size: 13px
+    }
+
+    /* ========= SPLIT LAYOUT (exact 50/50) ========= */
+    .split {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      /* <-- perfect half/half */
+      gap: 22px;
+      align-items: start;
+      margin-top: 6px;
+    }
+
+    /* swap columns on widescreens without changing HTML order */
+    .split--reverse> :first-child {
+      order: 2;
+    }
+
+    .split--reverse> :last-child {
+      order: 1;
+    }
+
+    @media (max-width: 980px) {
+      .split {
+        grid-template-columns: 1fr;
+        /* stack on mobile */
+        gap: 14px;
+      }
+
+      .split--reverse> :first-child,
+      .split--reverse> :last-child {
+        order: initial;
+      }
+
+      /* natural order on mobile */
+    }
+
+    .sidepanel {
+      border: 1px solid var(--border);
+      background: #fbfcff;
+      border-radius: 10px;
+      padding: 12px 14px;
+    }
+
+    .sidepanel ul {
+      margin: 6px 0 0 18px
+    }
+
+    .sidepanel li {
+      margin: 6px 0
+    }
+
+    .note {
+      margin-top: 10px;
+      background: #f7fafc;
+      border: 1px dashed var(--border);
+      border-radius: 8px;
+      padding: 8px 10px;
+      color: #374151;
+    }
+
+    /* ========= CONSISTENT CHART HEIGHTS ========= */
+    .vis {
+      width: 100%;
+      min-height: 440px
+    }
+
+    .vis--tall {
+      min-height: 520px
+    }
+
+    .vega-embed,
+    .vega-embed>div {
+      height: 100%
+    }
+
+    /* ========= FOOTER ========= */
+    footer.meta {
+      max-width: inherit;
+      /* match .page width (1500px) */
+      margin: 18px auto 0;
+      color: var(--muted);
+      font-size: 13px;
+      text-align: left;
+      padding: 8px 22px 24px;
+      /* 22px = your .card side padding */
+    }
+
+
+    footer.meta p {
+      margin: 0
+    }
+
+
+    /* 3-col layout: charts take 2 cols, text takes 1 */
+    .threecol {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      /* 3 equal columns */
+      gap: 22px;
+      align-items: start;
+    }
+
+    /* helpers for spanning */
+    .span-2-left {
+      grid-column: 1 / span 2;
+    }
+
+    /* cols 1-2 */
+    .span-2-right {
+      grid-column: 2 / span 2;
+    }
+
+    /* cols 2-3 */
+
+    /* keep vega strictly inside its grid cell */
+    .threecol .vis,
+    /* Stretch width to the grid cell, but let Vega control height */
+    .threecol .vega-embed,
+    .threecol .vega-embed>div,
+    .threecol .vega-embed canvas {
+      width: 100% !important;
+    }
+
+    .threecol .vega-embed>div,
+    .threecol .vega-embed canvas {
+      height: auto !important;
+      /* stop squashing/clipping */
+      display: block;
+    }
+
+    /* IMPORTANT: allow grid items to actually shrink/expand to the full span */
+    .threecol .span-2-left,
+    .threecol .vis,
+    .threecol .vega-embed {
+      min-width: 0;
+      /* removes implicit min-content width */
+    }
+
+    .vega-embed {
+      overflow: visible;
+    }
+
+    /* keep legends/tooltips visible */
+
+
+    /* mobile: stack vertically */
+    @media (max-width: 980px) {
+      .threecol {
+        grid-template-columns: 1fr;
+      }
+
+      .span-2-left,
+      .span-2-right {
+        grid-column: auto;
+      }
+    }
+
+    /* Center content horizontally in the 2-column area */
+    .span-2-right {
+      grid-column: 2 / span 2;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+
+    /* === 3-column explanation block === */
+    .explain3col {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+      margin-top: 18px;
+      align-items: start;
+    }
+
+    /* make sure text is neat */
+    .explain3col h3 {
+      margin-top: 0;
+      font: 700 16px/1.35 ui-serif, Georgia, Times, serif;
+    }
+
+    .explain3col ul {
+      margin: 6px 0 0 18px;
+    }
+
+    .explain3col li {
+      margin: 6px 0;
+    }
+
+    /* Responsive stacking on mobile */
+    @media (max-width: 980px) {
+      .explain3col {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+    }
+
+    /* ===== 3 mini-cards layout ===== */
+    .threecards {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 22px;
+      margin-top: 18px;
+    }
+
+    /* Individual subcards */
+    .subcard {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+      padding: 18px 20px;
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+
+    /* Optional subtle hover */
+    .subcard:hover {
+      transform: translateY(-3px);
+      box-shadow: 0 12px 24px rgba(0, 0, 0, 0.08);
+    }
+
+    /* Text formatting */
+    .subcard h3 {
+      font: 700 16px/1.35 ui-serif, Georgia, Times, serif;
+      margin-top: 0;
+    }
+
+    .subcard ul {
+      margin: 6px 0 0 18px;
+    }
+
+    .subcard li {
+      margin: 6px 0;
+    }
+
+    /* Responsive stacking */
+    @media (max-width: 980px) {
+      .threecards {
+        grid-template-columns: 1fr;
+        gap: 14px;
+      }
+    }
+
+    /* Full-width chart container */
+    .fullwidth-chart {
+      width: 100%;
+      margin: 0 auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    /* Let Vega control height; do NOT touch canvas height */
+    .fullwidth-chart .vega-embed,
+    .fullwidth-chart .vega-embed>div {
+      width: 100% !important;
+      max-width: 1200px;
+      /* or none for edge-to-edge */
+      height: auto;
+      /* let content decide */
+    }
+
+    /* Remove any height overrides on the canvas itself */
+    .fullwidth-chart .vega-embed canvas {
+      width: 100% !important;
+      height: auto;
+      /* no !important; or simply delete this rule */
+    }
+
+    #vis-parcoords .vega-bindings {
+  margin-top: 25px;
+}
+
+.vega-bindings label {
+  display: inline-block;
+  margin-bottom: 5px; /* adjust this value */
+}
+
+#vis-map .vega-bindings label,
+#vis-map .vega-bindings select {
+ 
+  margin-bottom: 5px; /* adjust this spacing between “Year” and “Metric” */
+}
+
+#growth-panel {
+  margin-top: 15px; /* adjust px value to taste */
+}
+
+#vis-gdp-donut {
+  position: relative;
+}
+
+#vis-gdp-donut .vega-bindings {
+  position: absolute;
+  top: 120px;
+  right: 20px;
+  background: rgba(255,255,255,0.8);
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+/* Do not scale the heatmap */
+#vis-gini .vega-embed,
+#vis-gini .vega-embed > div,
+#vis-gini .vega-embed svg {         /* SVG because of renderer:'svg' */
+  width: auto !important;
+  height: auto !important;
+  transform: none !important;
+}
+
+
+
+
+  </style>
+</head>
+
+<body>
+  <div class="page">
+
+    <!-- Masthead -->
+    <header class="masthead">
+      <h1>Malaysia Socioeconomic Wellbeing</h1>
+    </header>
+
+    <!-- Overview card -->
+    <div class="card">
+      <div class="card__title" style="margin-top:3px" >What This Dashboard Covers</div>
+      <p class="lead">
+        This dashboard explores Malaysia’s prosperity and opportunity across states. It moves
+        from national growth, to regional disparities, to social outcomes, and ends with a
+        multi-indicator wellbeing comparison.
+      </p>
+    </div>
+
+    <!-- 1) National context — UPDATED -->
+    <div class="card">
+      <div class="card__title" style="margin-top:3px">How Has Malaysia’s Economy Grown, and What Drives It?</div>
+      <p class="lead">
+        Malaysia’s GDP and GNI have expanded rapidly since the 1970s, reflecting the country’s structural transformation and sustained growth in production and income.
+      </p>
+
+      <!-- Row A: chart (2 cols) + text (1 col) -->
+      <div class="threecol" style="margin-top:16px">
+        <div class="vis vis--tall span-2-left" id="vis-gdp-gni"></div>
+
+        <!-- ⬇️ This panel will be filled dynamically -->
+        <aside class="sidepanel" id="growth-panel"></aside>
+      </div>
+
+      <!-- Row B: text (1 col) + donut/sunburst (2 cols) -->
+      <div class="threecol" style="margin-top:45px">
+        <aside class="sidepanel">
+          <h3>🧭 Malaysia’s Economic Structure (2015 – 2023)</h3>
+          <p>
+            Malaysia’s economy remains <b>service-driven</b>, with services contributing about <b>60%</b> of GDP
+            throughout 2015–2023.
+          </p>
+          <ul>
+            <li><b>Services</b> grew steadily, led by finance, retail, and ICT.</li>
+            <li><b>Manufacturing</b> stayed strong at around 25%, anchored by electronics and exports.</li>
+            <li><b>Agriculture</b> and <b>mining</b> continued to shrink, now below 10% combined.</li>
+            <li><b>Construction</b> dipped sharply in 2020 but rebounded afterward.</li>
+            <li>Total GDP rose from <b>RM 4.9 trillion (2015)</b> to <b>RM 7.7 trillion (2023)</b>, showing solid
+              post-pandemic recovery.</li>
+          </ul>
+          <div class="note">
+            <small>Values shown in RM million (nominal). Use the dropdown to explore changes across years.</small>
+          </div>
+          <p><b>Takeaway:</b> Malaysia has shifted firmly toward a <b>service-led, diversified economy</b>, supported by
+            resilient manufacturing and gradual structural balance.</p>
+        </aside>
+
+        <div class="vis vis--tall span-2-right" id="vis-gdp-donut"></div>
+      </div>
+
+    </div>
+
+
+
+
+    <!-- 2) Income rankings -->
+    <div class="card">
+      <div class="card__title" style="margin-top:3px" >Which States Are the Richest? — Income Rankings Over Time</div>
+
+      <!-- Chart -->
+      <div class="vis" id="vis-income-bump"></div>
+      <p class="caption">Bump chart showing how states’ income rankings change over time (higher income = higher rank).
+      </p>
+
+      <!-- Three explanation cards below -->
+      <div class="threecards">
+        <!-- Card 1 -->
+        <aside class="sidepanel">
+          <h3>📈 Overall Patterns</h3>
+          <ul>
+            <li><b>W.P. Kuala Lumpur</b> has led since 1974.</li>
+            <li><b>Selangor</b> and <b>Putrajaya</b> form a strong <b>top tier</b>.</li>
+            <li>The top 3 remain stable, showing long-term concentration of wealth in urban centers.</li>
+          </ul>
+        </aside>
+
+        <!-- Card 2 -->
+        <aside class="sidepanel">
+          <h3>📊 Middle Performers</h3>
+          <ul>
+            <li><b>Pulau Pinang, Johor, Sarawak,</b> and <b>Melaka</b> remain within ranks 4–8.</li>
+            <li><b>Pulau Pinang</b> shows gradual industrial-driven improvement.</li>
+            <li><b>Sarawak</b> rises during resource booms, reflecting dependence on oil and gas.</li>
+          </ul>
+        </aside>
+
+        <!-- Card 3 -->
+        <aside class="sidepanel">
+          <h3>📉 Lower Rankings & Volatility</h3>
+          <ul>
+            <li><b>Kelantan</b> and <b>Kedah</b> stay near the bottom, reflecting persistent inequality.</li>
+            <li><b>Terengganu</b> and <b>Sabah</b> show high volatility from commodity price swings.</li>
+            <li>Ranking structure remains largely unchanged, showing entrenched regional divides.</li>
+          </ul>
+        </aside>
+      </div>
+
+      <div class="note" style="margin-top:16px;">
+        <small>
+          <b>Insight:</b> Malaysia’s income hierarchy has remained remarkably stable — urbanized states dominate, while
+          rural regions lag behind, revealing deep structural disparities.
+        </small>
+      </div>
+    </div>
+
+
+
+
+    <!-- 3) Heatmap -->
+    <div class="card" >
+      <div class="card__title" style="margin-top:3px">How Has Inequality Changed?</div>
+
+      <!-- 3-column layout: chart spans 2 cols, text 1 col -->
+      <div class="threecol">
+        <div class="vis span-2-left" id="vis-gini" style="margin-top: 12px;"></div>
+
+
+        <aside class="sidepanel" style="margin-top: 18px;">
+<h3>🧩 Income Inequality Across States (1974–2022)</h3>
+<p>
+  This heatmap tracks Malaysia’s <b>Gini coefficient</b>, showing how income inequality has changed over time.
+  <b>Darker green</b> indicates <b>higher inequality</b> (higher Gini), while <b>lighter green</b> indicates <b>greater equality</b> (lower Gini).
+</p>
+<ul>
+  <li><b>Overall decline:</b> Most states gradually became more equal since the 1970s.</li>
+  <li><b>Urban gaps:</b> Kuala Lumpur and Selangor stay relatively high due to urban wage disparities.</li>
+  <li><b>East Malaysia:</b> Sabah and Sarawak remain less equal, linked to rural–urban divides and resource dependence.</li>
+  <li><b>Convergence:</b> By 2022, most states range around 0.35–0.45, reflecting moderate inequality.</li>
+</ul>
+<p><b>Takeaway:</b> Malaysia’s inequality has narrowed overall, but urban–rural and regional gaps persist.</p>
+<div class="note"><small>Gini ranges from 0 (perfect equality) to 1 (perfect inequality).</small></div>
+
+        </aside>
+      </div>
+    </div>
+
+
+
+    <!-- 4) Poverty map -->
+    <div class="card">
+      <div class="card__title" style="margin-top:3px" >How Has Poverty Changed Across Malaysia?</div>
+
+      <!-- Map Chart -->
+      <div class="vis" id="vis-map"></div>
+      <p class="caption">
+        Choropleth map showing poverty trends across states. Switch Year and Metric to explore.<br>
+        <span style="color:#b91c1c;font-weight:600;">Red outlines</span> = state with highest poverty rate;
+        <span style="color:#0f766e;font-weight:600;">green outlines</span> = state with lowest poverty rate.
+      </p>
+
+
+      <!-- Three explanation cards below -->
+      <div class="threecards">
+        <!-- Card 1 -->
+        <aside class="sidepanel">
+          <h3>📉 Long-run Patterns</h3>
+          <ul>
+            <li><b>Big structural decline:</b> Absolute poverty fell from over 60% in the 1970s
+              (Kelantan, Kedah, Perlis, Terengganu) to low single digits by the mid-2010s.</li>
+            <li><b>Hardcore poverty collapsed:</b> Double-digit rates in the 1980s dropped to ~0–1% in most states by
+              2016,
+              with only brief upticks afterward.</li>
+            <li><b>Relative poverty is stickier:</b> Many states hover around 10–20%, showing that inequality remains
+              even as deprivation drops.</li>
+          </ul>
+        </aside>
+
+        <!-- Card 2 -->
+        <aside class="sidepanel">
+          <h3>🗺️ Geography & Volatility</h3>
+          <ul>
+            <li><b>Persistent hotspots:</b> <b>Sabah</b> leads on absolute and hardcore poverty; <b>Sarawak</b> often
+              tops relative poverty.</li>
+            <li><b>Urban advantage:</b> <b>Kuala Lumpur</b>, <b>Putrajaya</b>, and <b>Selangor</b> consistently lowest
+              on absolute/hardcore measures.</li>
+            <li><b>Northern & east-coast</b> states (Kelantan, Kedah, Perlis, Terengganu) usually above average but show
+              steady improvement.</li>
+            <li><b>Commodity sensitivity:</b> <b>Terengganu</b> and <b>Sabah</b> fluctuate with oil & gas cycles.</li>
+          </ul>
+        </aside>
+
+        <!-- Card 3 -->
+        <aside class="sidepanel">
+          <h3>🔄 Recent Cycle & Takeaway</h3>
+          <ul>
+            <li><b>Pandemic shock (2020):</b> sharp spikes in absolute and hardcore poverty nationwide.</li>
+            <li><b>Partial recovery (2022):</b> improvement from 2020 but not back to pre-pandemic lows.</li>
+          </ul>
+          <p><b>Takeaway:</b> Malaysia achieved a dramatic poverty reduction over 50 years,
+            yet <b>regional gaps persist</b> — especially in <b>Sabah</b> and the <b>northern/east-coast Peninsula</b> —
+            and <b>relative poverty remains elevated</b>, reflecting deep structural inequality.</p>
+          <div class="note"><small>
+              Definitions: Absolute = below national PLI; Relative = below 50% of state median income; Hardcore = below
+              food PLI.
+            </small></div>
+        </aside>
+      </div>
+    </div>
+
+
+
+
+    <!-- 5) Parallel coordinates -->
+    <div class="card">
+      <div class="card__title" style="margin-top:3px">How States Compare in Overall Wellbeing</div>
+      <!-- 3-column layout: chart spans 2 cols, text 1 col -->
+      <div class="threecol">
+        <div class="vis vis--tall span-2-left" style="margin-top:5px" id="vis-parcoords"></div>
+
+        <aside class="sidepanel" style="margin-top: 14px;">
+          <h3>🧭 What This Shows</h3>
+          <p>
+            This parallel coordinates chart compares states across four wellbeing dimensions —
+            <b>income</b>, <b>inequality</b>, <b>poverty</b>, and <b>education</b> —
+            all scaled from <b>0–1</b> so higher means better performance.
+            Each line is a state; the highlighted line shows the selected one.
+          </p>
+
+          <h3>📊 How to Read</h3>
+          <ul>
+            <li>Each vertical axis is one indicator of wellbeing.</li>
+            <li>Flatter lines = balanced performance; steep drops = weak areas.</li>
+            <li>Higher lines overall indicate stronger socioeconomic wellbeing.</li>
+          </ul>
+
+          <h3>💡 Key Insights</h3>
+          <ul>
+            <li><b>Selangor</b> and <b>W.P. Kuala Lumpur</b> top most indicators — strong income and low poverty.</li>
+            <li><b>Putrajaya</b> remains consistently high across all dimensions.</li>
+            <li><b>Kelantan</b> and <b>Sabah</b> lag behind due to low income and higher poverty.</li>
+            <li>Education is relatively equal nationwide, but income gaps persist.</li>
+          </ul>
+
+          <p><b>Takeaway:</b> Malaysia’s wellbeing is improving overall, but clear east–west and urban–rural divides
+            remain.</p>
+
+          <div class="note">
+            <small>All variables were normalised; poverty &amp; Gini inverted so higher = better.</small>
+          </div>
+        </aside>
+      </div>
+    </div>
+
+
+    <!-- Vega embeds -->
+    <script>
+      (async () => {
+        try {
+          // 1) GDP–GNI line chart (with dynamic sidepanel)
+          const { view } = await vegaEmbed('#vis-gdp-gni', 'assets/js/gdp_gni_trend.json', {
+            actions: false,
+            renderer: 'canvas'
+          });
+
+          const panel = document.getElementById('growth-panel');
+
+          const tplAbsolute = `
+  <h3>🏗️ National Economic Growth</h3>
+  <p>Output and income have expanded steadily since the 1970s, reflecting Malaysia’s transformation from an agriculture-based economy to a diversified, industrial, and service-driven one.
+  Growth has averaged nearly <b>6% per year</b>, with GDP rising from <b>RM 74 billion in 1970</b> to over <b>RM 1.6 trillion in 2024</b>.</p>
+
+  <ul>
+    <li><b>Sustained expansion:</b> interrupted only by brief contractions during major crises — the 1985–86 recession, the 1998 Asian Financial Crisis, the 2009 Global Financial Crisis, and the 2020 COVID-19 downturn.</li>
+    <li><b>GDP and GNI</b> have moved closely together, showing that domestic output and residents’ income have grown in tandem.</li>
+    <li><b>Resilience:</b> the economy has consistently rebounded after shocks, demonstrating strong structural recovery capacity.</li>
+  </ul>
+
+  <p><b>Takeaway:</b> Malaysia’s long-term upward trajectory highlights the success of its industrialisation and export-led growth strategies, although cyclical downturns remain a feature of its economic rhythm.</p>
+
+  <div class="note"><small>Values in RM million (constant prices). Hover the chart for exact years.</small></div>
+`;
+
+          const tplGrowth = `
+  <h3>📉 Annual Growth Volatility</h3>
+  <p>The annual growth chart highlights Malaysia’s <b>business-cycle fluctuations</b> beneath its long-term rise. 
+  Growth rates fluctuated between <b>–7%</b> and <b>+11%</b>, reflecting the economy’s sensitivity to global demand and commodity cycles.</p>
+
+  <ul>
+    <li><b>Downturns:</b> the mid-1980s slump, the 1998 Asian Financial Crisis, the 2009 Global Financial Crisis, and the 2020 COVID-19 shock.</li>
+    <li><b>Rebounds:</b> each crisis was followed by a strong recovery, demonstrating structural resilience.</li>
+    <li><b>Pattern:</b> a cyclical yet adaptive economy shaped by export and investment trends.</li>
+  </ul>
+
+  <p><b>Takeaway:</b> Malaysia’s economy remains robust but externally exposed — 
+  fostering <b>diversification</b> and <b>innovation</b> is crucial to stabilising future growth.</p>
+
+  <div class="note"><small>Use the dropdown to switch between long-term levels and annual fluctuations.</small></div>
+`;
+
+          const renderPanel = (metricLabel) => {
+            panel.innerHTML = (metricLabel === 'Absolute Value (RM mil)') ? tplAbsolute : tplGrowth;
+          };
+
+          // Initial render using current Vega signal
+          renderPanel(view.signal('MetricSel'));
+
+          // Update panel when the dropdown changes
+          view.addSignalListener('MetricSel', (_name, value) => renderPanel(value));
+
+          // 2) Other charts (one embed each)
+          await vegaEmbed('#vis-gdp-donut', 'assets/js/gdp_sunburst.json', { actions: false, renderer: 'canvas' });
+          await vegaEmbed('#vis-income-bump', 'assets/js/income_bump.json', { actions: false, renderer: 'canvas' });
+          await vegaEmbed('#vis-gini', 'assets/js/gini_trend.json', { actions: false, renderer: 'svg' });
+  const mapEmbed = await vegaEmbed('#vis-map', 'assets/js/mys_poverty_map.json', {
+    actions: false,
+    renderer: 'canvas'
+  });
+  const mapView = mapEmbed.view;
+  const rootEl = mapEmbed.container || mapEmbed.element || mapView.container();
+
+  // Let Vega render built-in controls (Metric) first
+  await new Promise(r => setTimeout(r, 0));
+
+  // Bindings container
+  let bindings = rootEl.querySelector('.vega-bindings');
+  if (!bindings) {
+    bindings = document.createElement('div');
+    bindings.className = 'vega-bindings';
+    rootEl.prepend(bindings);
+  }
+
+  // --- SAFE remover: do NOT delete our custom Year (marked with data-custom-year="1")
+  function removeStrayYearControls(scope = bindings) {
+    const labels = Array.from(scope.querySelectorAll('label'));
+    labels.forEach(lab => {
+      if (lab.dataset.customYear === '1') return; // keep ours
+      const txt = (lab.textContent || '').trim();
+      if (/^Year:\s*$/i.test(txt)) {
+        const sel = lab.nextElementSibling;
+        if (sel && sel.dataset.customYear === '1') return; // keep ours
+        if (sel && sel.tagName === 'SELECT') sel.remove();
+        lab.remove();
+      }
+    });
+  }
+
+  // Clean once, then keep clean
+  removeStrayYearControls();
+  const mo = new MutationObserver(() => removeStrayYearControls());
+  mo.observe(bindings, { childList: true, subtree: true });
+
+  // Find Metric label to insert before it
+  const metricLabelEl = Array.from(bindings.querySelectorAll('label'))
+    .find(l => /Metric:\s*$/i.test(l.textContent || '')) || null;
+
+  // --- Our single Year control (tagged) ---
+  const yearLabel = document.createElement('label');
+  yearLabel.textContent = 'Year: ';
+  yearLabel.style.marginRight = '6px';
+  yearLabel.dataset.customYear = '1';
+
+  const yearSel = document.createElement('select');
+  yearSel.style.marginRight = '12px';
+  yearSel.dataset.customYear = '1';
+
+  if (metricLabelEl) {
+    bindings.insertBefore(yearSel, metricLabelEl);
+    bindings.insertBefore(yearLabel, yearSel);
+  } else {
+    bindings.prepend(yearSel);
+    bindings.prepend(yearLabel);
+  }
+
+  // Allowed years per metric
+  const YEARS_ABS = [1970,1976,1979,1984,1987,1989,1992,1995,1997,1999,2002,2004,2007,2009,2012,2014,2016,2019,2020,2022];
+  const YEARS_REL = [1995,1997,1999,2002,2004,2007,2009,2012,2014,2016,2019,2020,2022];
+  const YEARS_HC  = [1984,1987,1989,1992,1995,1997,1999,2002,2004,2007,2009,2012,2014,2016,2019,2020,2022];
+
+  const YEARS_BY_METRIC = {
+    'Absolute poverty (below PLI)': YEARS_ABS,
+    'Relative poverty (below 50% of state median income)': YEARS_REL,
+    'Hardcore poverty (below Food PLI)': YEARS_HC
+  };
+
+  function rebuildYearOptions(metricLabel) {
+    const valid = YEARS_BY_METRIC[metricLabel] || YEARS_ABS;
+    yearSel.innerHTML = '';
+    valid.forEach(y => {
+      const opt = document.createElement('option');
+      opt.value = String(y);
+      opt.textContent = String(y);
+      yearSel.appendChild(opt);
+    });
+    const currYear = mapView.signal('YearSel');
+    const nextYear = valid.includes(currYear) ? currYear : valid[valid.length - 1];
+    yearSel.value = String(nextYear);
+    if (currYear !== nextYear) mapView.signal('YearSel', nextYear).run();
+  }
+
+  // Initial + on-change wiring
+  rebuildYearOptions(mapView.signal('MetricPretty'));
+  mapView.addSignalListener('MetricPretty', (_n, metricLabel) => rebuildYearOptions(metricLabel));
+  yearSel.addEventListener('change', () => mapView.signal('YearSel', +yearSel.value).run());
+
+          await vegaEmbed('#vis-parcoords', 'assets/js/wellbeing_parallel_coords.json', { actions: false, renderer: 'canvas' });
+        } catch (err) {
+          console.error(err);
+        }
+      })();
+    </script>
+
+
+    <footer class="meta">
+      <p><strong>Visualisation by:</strong> Yew Zhi Xuan</p>
+
+      <p><strong>Data sources</strong></p>
+      <div class="sources">
+        <div>
+          <p><em>open.dosm.gov.my</em></p>
+          <ul>
+            <li><a href="https://open.dosm.gov.my/data-catalogue/hh_poverty_state" target="_blank"
+                rel="noopener">Household Poverty by State</a></li>
+            <li><a href="https://open.dosm.gov.my/data-catalogue/hh_inequality_state" target="_blank"
+                rel="noopener">Household Inequality (Gini) by State</a></li>
+            <li><a href="https://open.dosm.gov.my/data-catalogue/hh_income_state" target="_blank"
+                rel="noopener">Household Income by State</a></li>
+          </ul>
+        </div>
+        <div>
+          <p><em>data.gov.my</em></p>
+          <ul>
+            <li><a href="https://data.gov.my/data-catalogue/gdp_annual_nominal_supply_granular" target="_blank"
+                rel="noopener">GDP (Nominal, Supply – granular)</a></li>
+            <li><a href="https://data.gov.my/data-catalogue/gdp_gni_annual_real" target="_blank" rel="noopener">GDP
+                &amp; GNI (Annual, Real)</a></li>
+            <li><a href="https://data.gov.my/data-catalogue/completion_school_state" target="_blank"
+                rel="noopener">Upper-Secondary Completion by State</a></li>
+          </ul>
+        </div>
+      </div>
+
+      <p>Created on 20 Oct 2025.</p>
+    </footer>
+
+  </div>
+</body>
+
+</html>

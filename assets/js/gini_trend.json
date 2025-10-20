@@ -1,0 +1,51 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "width": 750,     
+  "height": 520,   
+  "background": "white",
+
+  "data": {
+    "url": "assets/data/hh_inequality_state.csv",
+    "format": { "type": "csv", "parse": { "year": "number", "gini": "number" } }
+  },
+
+  "mark": { "type": "rect", "stroke": "#ffffff", "strokeWidth": 1, "strokeJoin": "miter" },
+
+  "encoding": {
+    "x": {
+      "field": "year",
+      "type": "ordinal",
+      "title": "Year",
+      "axis": { "labelAngle": 0, "labelFontSize": 12, "titleFontSize": 12, "titlePadding": 15 },
+      "scale": { "paddingInner": 0, "paddingOuter": 0 }  
+    },
+    "y": {
+      "field": "state",
+      "type": "nominal",
+      "title": "State",
+      "sort": { "op": "median", "field": "gini", "order": "descending" },
+      "axis": { "labelFontSize": 12, "titleFontSize": 12, "titlePadding": 15 },
+      "scale": { "paddingInner": 0, "paddingOuter": 0 }   
+    },
+    "color": {
+      "field": "gini",
+      "type": "quantitative",
+      "title": "Gini",
+      "bin": { "maxbins": 6 },
+      "scale": { "scheme": "greens" },
+      "legend": { "type": "symbol", "symbolType": "square", "labelFormat": ".2f" }
+    },
+"tooltip": [
+  { "field": "state", "title": "State" },
+  { "field": "year",  "type": "quantitative", "format": "d",   "title": "Year" },
+  { "field": "gini",  "type": "quantitative", "format": ".3f", "title": "Gini" }
+]
+
+  },
+
+  "config": {
+    "view": { "stroke": null, "continuousWidth": 880 },
+    "axis": { "labelFontSize": 12, "titleFontSize": 12 }
+ 
+  }
+}

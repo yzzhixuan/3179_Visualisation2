@@ -1,0 +1,12 @@
+Page typography and spacing
+body{
+  margin:24px;
+  font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+}
+
+/* Chart wrapper */
+#vis{
+  width:min(100%,1100px);
+  margin:0 auto;           /* center the chart block */
+}
+

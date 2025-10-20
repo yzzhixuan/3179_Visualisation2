@@ -1,0 +1,226 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+"width": "container",
+"height": 500,
+"padding": { "top": 12, "right": 28, "bottom": 50, "left": 8 },
+"autosize": { "type": "fit-x", "contains": "padding", "resize": true },
+
+  "background": "white",
+  "title": null,
+
+  "data": {
+    "url": "assets/data/gdp_gni_annual_real.csv",
+    "format": {
+      "type": "csv",
+      "parse": {
+        "date": "date",
+        "gdp": "number",
+        "gni": "number",
+        "gdp_capita": "number",
+        "gni_capita": "number"
+      }
+    }
+  },
+
+  "params": [
+    {
+      "name": "MetricSel",
+      "value": "Absolute Value (RM mil)",
+      "bind": {
+        "input": "select",
+        "name": "Metric: ",
+        "options": ["Absolute Value (RM mil)", "Annual Growth (%)"]
+      }
+    },
+    {
+  "name": "CardBG",
+  "value": "#F8FAFC"
+},
+{
+  "name": "CardBorder",
+  "value": "#E5E7EB"
+}
+
+  ],
+
+  "transform": [
+    {"calculate": "MetricSel === 'Absolute Value (RM mil)' ? 'abs' : 'growth_yoy'", "as": "series_sel"},
+    {"filter": "datum.series === datum.series_sel"}
+  ],
+
+  "layer": [
+    
+    {
+      "transform": [
+        {"fold": ["gdp", "gni"], "as": ["indicator", "value"]},
+        {"calculate": "datum.indicator === 'gdp' ? 'GDP' : 'GNI'", "as": "indicator_label"},
+      {
+  "calculate": "MetricSel === 'Absolute Value (RM mil)' ? 'RM ' + format(datum.value/1e3, ',.2f') + ' billion' : format(datum.value, '.2f') + '%'",
+  "as": "value_pretty"
+}
+
+      ],
+      "mark": {"type": "line", "point": true},
+      "encoding": {
+        "x": {
+  "field": "date",
+  "type": "temporal",
+  "title": "Year",
+  "axis": {
+    "format": "%Y",
+    "labelAngle": 0,
+            "labelFontSize": 12,    
+        "titleFontSize": 12,     
+        "titlePadding": 10,
+    "tickCount": {"interval": "year", "step": 4}   
+  },
+  "scale": {
+    "domain": ["1970-01-01", "2025-01-01"],  
+    "nice": false
+  }
+}
+,
+        "y": {
+    "field": "value",
+    "type": "quantitative",
+    "title": {
+      "signal": "MetricSel === 'Absolute Value (RM mil)' ? 'Absolute Value (RM)' : 'Annual Growth (%)'"
+    },
+    "scale": {"zero": false},
+    "axis": {
+      "labelFontSize": 12, 
+      "titleFontSize": 12,
+      "titleFontWeight": "bold",
+      "titleAngle": -90,
+      "titlePadding": 15
+    }
+        },
+        "color": {
+          "field": "indicator_label",
+          "type": "nominal",
+          "scale": {"domain": ["GDP", "GNI"], "range": ["#1f77b4", "#ff7f0e"]},
+          "title": null
+        },
+        "tooltip": [
+          {"field": "indicator_label", "title": "Indicator"},
+          {"field": "date", "type": "temporal", "title": "Year", "format": "%Y"},
+          {"field": "value_pretty", "title": "Value"},
+          {
+            "title": "Value",
+            "type": "quantitative",
+            "expr": "MetricSel === 'Absolute Value (RM mil)' ? format(datum.value, ',.0f') + ' RM mil' : format(datum.value, '.2f') + '%'"
+          }
+        ]
+      }
+    },
+
+    
+    {
+      "transform": [
+        { "filter": "datum.series_sel === 'abs'" },
+        {
+          "window": [
+            {"op":"argmin","field":"date","as":"firstRow"},
+            {"op":"argmax","field":"date","as":"lastRow"}
+          ],
+          "frame": [null, null]
+        },
+        { "filter": "toDate(datum.date) === toDate(datum.firstRow.date)" },
+        { "calculate": "year(datum.lastRow.date) - year(datum.firstRow.date)", "as": "n_years" },
+        { "calculate": "pow(datum.lastRow.gdp / datum.firstRow.gdp, 1/datum.n_years) - 1", "as": "cagr_gdp" },
+        { "calculate": "pow(datum.lastRow.gni / datum.firstRow.gni, 1/datum.n_years) - 1", "as": "cagr_gni" },
+        {
+          "calculate": "'1970→' + format(year(datum.lastRow.date),'d') + ': GDP up from RM ' + format(datum.firstRow.gdp/1e3,',.0f') + 'b to RM ' + format(datum.lastRow.gdp/1e3,',.0f') + 'b (' + format(datum.cagr_gdp*100, '.1f') + '% p.a.)\\n' + 'GNI up from RM ' + format(datum.firstRow.gni/1e3,',.0f') + 'b to RM ' + format(datum.lastRow.gni/1e3,',.0f') + 'b (' + format(datum.cagr_gni*100, '.1f') + '% p.a.)\\n' + 'Crossed RM 1 trillion in 2015; dips: 1985–86, 1998 (AFC)\\n' + '2009 (GFC), 2020 (COVID); rebound after 2021.'",
+          "as": "abs_note"
+        }
+      ],
+      "layer": [
+{
+  "mark": {
+    "type": "rect",
+    "cornerRadius": 8,
+    "fill": {"expr": "CardBG"},
+    "stroke": {"expr": "CardBorder"}
+  },
+  "encoding": {
+    "x":  {"value": 140},
+    "x2": {"value": 490},
+    "y":  {"value": 50},
+    "y2": {"value": 125},
+    "opacity": {"expr": "MetricSel === 'Absolute Value (RM mil)' ? 1 : 0"}
+  }
+}
+,
+        {
+          "mark": {
+            "type": "text",
+            "align": "left",
+            "baseline": "top",
+            "dx": 12, "dy": 10,
+            "fontSize": 12,
+            "lineBreak": "\n"
+          },
+          "encoding": {
+            "x": { "value": 140 },   
+            "y": { "value": 50 },
+            "text": { "field": "abs_note" },
+            "opacity": { "expr": "MetricSel === 'Absolute Value (RM mil)' ? 1 : 0" }
+          }
+        }
+      ]
+    },
+
+
+    {
+      "data": {
+        "values": [
+          {"label": "Mid-80s slump", "year": "1985-01-01"},
+          {"label": "Asian Financial Crisis", "year": "1998-01-01"},
+          {"label": "Global Financial Crisis", "year": "2009-01-01"},
+          {"label": "COVID-19", "year": "2020-01-01"}
+        ]
+      },
+      "transform": [
+        { "filter": "MetricSel === 'Annual Growth (%)'" }
+      ],
+      "layer": [
+        {
+          "mark": {"type": "rule", "stroke": "#9ca3af", "strokeDash": [4, 4]},
+          "encoding": {
+            "x": {"field": "year", "type": "temporal"},
+            "y": {"value": 0},
+            "y2": {"value": 420}
+          }
+        },
+        {
+          "mark": {
+            "type": "text",
+            "dy": -6,
+            "align": "center",
+            "fontSize": 11,
+            "fill": "#374151",
+            "background": {
+  "fill": {"expr": "CardBG"},
+  "stroke": {"expr": "CardBorder"},
+  "cornerRadius": 4,
+  "dx": -4,
+  "dy": -2
+}
+
+          },
+          "encoding": {
+            "x": {"field": "year", "type": "temporal"},
+            "y": {"value": 10},
+            "text": {"field": "label"}
+          }
+        }
+      ]
+    }
+  ],
+
+  "config": {
+    "axis": {"grid": true},
+    "view": {"stroke": null},
+    "legend": {"orient": "right"}
+  }
+}

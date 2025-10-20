@@ -1,0 +1,206 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "width": "container",
+  "height": 590,
+  "background": "white",
+  "title": null,
+  "projection": { "type": "mercator", "center": [110, 4], "parallels": [2, 12], "scale": 3300, "translate": [720, 295] },
+
+  "params": [
+    {
+      "name": "YearSel",
+      "value": 2022
+    },
+    {
+      "name": "MetricPretty",
+      "value": "Absolute poverty (below PLI)",
+      "bind": {
+        "input": "select",
+        "name": "Metric: ",
+        "options": [
+          "Absolute poverty (below PLI)",
+          "Relative poverty (below 50% of state median income)",
+          "Hardcore poverty (below Food PLI)"
+        ]
+      }
+    },
+    {
+  "name": "CardBG",
+  "value": "#F8FAFC"
+},
+{
+  "name": "CardBorder",
+  "value": "#E5E7EB"
+}
+
+  ],
+
+  "layer": [
+    { "data": { "graticule": { "step": [10, 10] } },
+      "mark": { "type": "geoshape", "filled": false, "stroke": "#c7c7c7", "strokeWidth": 0.5 }
+    },
+
+    {
+      "data": { "url": "assets/data/hh_poverty_state.csv",
+        "format": { "type": "csv", "parse": { "year": "number", "poverty_absolute": "number", "poverty_hardcore": "number", "poverty_relative": "number" } }
+      },
+      "transform": [
+        { "filter": "datum.year == YearSel" },
+        { "calculate": "datum.state === 'W.P. Kuala Lumpur' ? 'Kuala Lumpur' : datum.state === 'W.P. Labuan' ? 'Labuan' : datum.state === 'W.P. Putrajaya' ? 'Putrajaya' : datum.state", "as": "state_key" },
+        { "calculate": "MetricPretty === 'Absolute poverty (below PLI)' ? 'poverty_absolute' : (MetricPretty === 'Relative poverty (below 50% of state median income)' ? 'poverty_relative' : 'poverty_hardcore')", "as": "MetricSel" },
+        { "calculate": "toNumber(datum[datum.MetricSel])", "as": "metric_value" },
+        { "lookup": "state_key",
+          "from": { "data": { "url": "assets/geo/mys_states.topojson", "format": { "type": "topojson", "feature": "states" } },
+                    "key": "properties.name", "fields": ["type","properties","arcs","geometry"] } },
+        { "calculate": "MetricPretty + ' (%)'", "as": "metric_label" },
+        { "calculate": "MetricPretty === 'Absolute poverty (below PLI)' ? 'Households with monthly income below the Poverty Line Income (PLI).' : (MetricPretty === 'Relative poverty (below 50% of state median income)' ? 'Households with monthly income below half of the state median income.' : 'Households with monthly income below the Food Poverty Line Income (Food PLI).')", "as": "metric_def" }
+      ],
+      "mark": { "type": "geoshape", "stroke": "white", "strokeWidth": 0.7 },
+      "encoding": {
+        "shape": { "field": "geometry", "type": "geojson" },
+"color": {
+  "field": "metric_value",
+  "type": "quantitative",
+  "title": {"expr": "datum.metric_label"},
+  "scale": {
+    "type": "quantize",
+    "scheme": "blues",
+    "domain": [0, 25],   
+    "count": 5              
+  },
+  "legend": {
+    "title": "Poverty Rate (%)",
+    "orient": "right",
+    "labelFontSize": 12,
+    "titleFontSize": 12,
+    "titleLimit": 280
+  }
+}
+,
+        "tooltip": [
+          { "field": "state_key", "title": "State:" },
+          { "field": "year", "title": "Year:", "format": "d" },
+          { "title": "Selected metric", "type": "nominal", "expr": "datum.metric_label" },
+          { "field": "metric_def", "title": "Chosen Metric's Definition" },
+          { "field": "poverty_absolute", "title": "Absolute (%)", "format": ".1f" },
+          { "field": "poverty_relative", "title": "Relative (%)", "format": ".1f" },
+          { "field": "poverty_hardcore", "title": "Hardcore (%)", "format": ".1f" }
+        ]
+      }
+    },
+
+    {
+      "data": { "url": "assets/data/hh_poverty_state.csv",
+        "format": { "type": "csv", "parse": { "year": "number", "poverty_absolute": "number", "poverty_hardcore": "number", "poverty_relative": "number" } }
+      },
+      "transform": [
+        { "filter": "datum.year == YearSel" },
+        { "calculate": "datum.state === 'W.P. Kuala Lumpur' ? 'Kuala Lumpur' : datum.state === 'W.P. Labuan' ? 'Labuan' : datum.state === 'W.P. Putrajaya' ? 'Putrajaya' : datum.state", "as": "state_key" },
+        { "calculate": "MetricPretty === 'Absolute poverty (below PLI)' ? 'poverty_absolute' : (MetricPretty === 'Relative poverty (below 50% of state median income)' ? 'poverty_relative' : 'poverty_hardcore')", "as": "MetricSel" },
+        { "calculate": "toNumber(datum[datum.MetricSel])", "as": "metric_value" },
+        { "joinaggregate": [
+            { "op": "argmax", "field": "metric_value", "as": "maxRow" },
+            { "op": "argmin", "field": "metric_value", "as": "minRow" }
+          ], "groupby": ["year","MetricSel"] },
+        { "calculate": "datum.state_key == datum.maxRow.state_key ? 'max' : datum.state_key == datum.minRow.state_key ? 'min' : null", "as": "extremeFlag" },
+        { "calculate": "MetricPretty + ' (%)'", "as": "metric_label" },
+        { "lookup": "state_key",
+          "from": { "data": { "url": "assets/geo/mys_states.topojson", "format": { "type": "topojson", "feature": "states" } },
+                    "key": "properties.name", "fields": ["type","properties","arcs","geometry"] } },
+        { "calculate": "MetricPretty === 'Absolute poverty (below PLI)' ? 'Households with monthly income below the Poverty Line Income (PLI).' : (MetricPretty === 'Relative poverty (below 50% of state median income)' ? 'Households with monthly income below half of the state median income.' : 'Households with monthly income below the Food Poverty Line Income (Food PLI).')", "as": "metric_def" },
+        { "filter": "datum.extremeFlag != null" }
+      ],
+      "mark": { "type": "geoshape", "filled": false },
+      "encoding": {
+        "shape": { "field": "geometry", "type": "geojson" },
+        "stroke": { "field": "extremeFlag", "type": "nominal",
+          "scale": { "domain": ["max","min"], "range": ["#b91c1c","#0f766e"] },
+          "legend": null },
+        "strokeWidth": { "value": 2.5 },
+        "tooltip": [
+          { "field": "state_key", "title": "State:" },
+          { "field": "year", "title": "Year:", "format": "d" },
+          { "title": "Selected metric", "type": "nominal", "expr": "datum.metric_label" },
+          { "field": "metric_def", "title": "Definition:" },
+          { "field": "poverty_absolute", "title": "Absolute (%):", "format": ".1f" },
+          { "field": "poverty_relative", "title": "Relative (%):", "format": ".1f" },
+          { "field": "poverty_hardcore", "title": "Hardcore (%):", "format": ".1f" }
+        ]
+      }
+    },
+
+    {
+      "data": { "url": "assets/data/hh_poverty_state.csv",
+        "format": { "type": "csv", "parse": { "year": "number", "poverty_absolute": "number", "poverty_hardcore": "number", "poverty_relative": "number" } }
+      },
+      "transform": [
+        { "filter": "datum.year == YearSel" },
+        { "calculate": "datum.state === 'W.P. Kuala Lumpur' ? 'Kuala Lumpur' : datum.state === 'W.P. Labuan' ? 'Labuan' : datum.state === 'W.P. Putrajaya' ? 'Putrajaya' : datum.state", "as": "state_key" },
+        { "calculate": "MetricPretty === 'Absolute poverty (below PLI)' ? 'poverty_absolute' : (MetricPretty === 'Relative poverty (below 50% of state median income)' ? 'poverty_relative' : 'poverty_hardcore')", "as": "MetricSel" },
+        { "calculate": "toNumber(datum[datum.MetricSel])", "as": "metric_value" },
+        { "joinaggregate": [
+            { "op": "mean", "field": "metric_value", "as": "avg_val" },
+            { "op": "count", "field": "metric_value", "as": "stateCount" }
+          ], "groupby": ["year","MetricSel"] },
+        { "calculate": "datum.metric_value > datum.avg_val ? 1 : 0", "as": "aboveFlag" },
+        { "aggregate": [
+            { "op": "mean", "field": "avg_val", "as": "avg_once" },
+            { "op": "sum", "field": "aboveFlag", "as": "aboveCount" },
+            { "op": "count","field": "metric_value", "as": "n_states" },
+            { "op": "argmax","field": "metric_value", "as": "maxRow" },
+            { "op": "argmin","field": "metric_value", "as": "minRow" }
+          ], "groupby": ["year","MetricSel"] },
+        { "calculate": "lower(MetricPretty)", "as": "metric_lower" },
+        { "calculate": "datum.maxRow.state_key", "as": "max_state" },
+        { "calculate": "datum.maxRow.metric_value", "as": "max_val" },
+        { "calculate": "datum.minRow.state_key", "as": "min_state" },
+        { "calculate": "datum.minRow.metric_value", "as": "min_val" },
+        { "calculate": "'In ' + YearSel + ', ' + datum.metric_lower + '.'", "as": "line_head" },
+        { "calculate": "datum.max_state + ' (' + format(datum.max_val, '.1f') + '%)'", "as": "line_high_val" },
+        { "calculate": "datum.min_state + ' (' + format(datum.min_val, '.1f') + '%)'", "as": "line_low_val" },
+        { "calculate": "format(datum.avg_once, '.1f') + '% — ' + format(datum.aboveCount, '.0f') + ' of ' + format(datum.n_states, '.0f') + ' states are above average.'", "as": "line_nat_val" }
+      ],
+
+      "layer": [
+{
+  "mark": {     "type": "rect",
+    "cornerRadius": 8,
+    "fill": {"expr": "CardBG"},
+    "stroke": {"expr": "CardBorder"} },
+  "encoding": { "x": { "value": 500 }, "x2": { "value": 870 }, "y": { "value": 60 }, "y2": { "value": 140 } }
+},
+{
+  "mark": { "type": "text", "align": "left", "baseline": "top", "dx": 12, "dy": 10, "fontSize": 12 },
+  "encoding": { "x": { "value": 500 }, "y": { "value": 60 }, "text": { "field": "line_head" } }
+},
+{
+  "mark": { "type": "text", "align": "left", "baseline": "top", "dx": 12, "dy": 28, "fontSize": 12, "fontWeight": "bold" },
+  "encoding": { "x": { "value": 500 }, "y": { "value": 60 }, "text": { "value": "Highest:" } }
+},
+{
+  "mark": { "type": "text", "align": "left", "baseline": "top", "dx": 84, "dy": 28, "fontSize": 12 },
+  "encoding": { "x": { "value": 500 }, "y": { "value": 60 }, "text": { "field": "line_high_val" } }
+},
+{
+  "mark": { "type": "text", "align": "left", "baseline": "top", "dx": 12, "dy": 44, "fontSize": 12, "fontWeight": "bold" },
+  "encoding": { "x": { "value": 500 }, "y": { "value": 60 }, "text": { "value": "Lowest:" } }
+},
+{
+  "mark": { "type": "text", "align": "left", "baseline": "top", "dx": 84, "dy": 44, "fontSize": 12 },
+  "encoding": { "x": { "value": 500 }, "y": { "value": 60 }, "text": { "field": "line_low_val" } }
+},
+{
+  "mark": { "type": "text", "align": "left", "baseline": "top", "dx": 12, "dy": 60, "fontSize": 12, "fontWeight": "bold" },
+  "encoding": { "x": { "value": 500 }, "y": { "value": 60 }, "text": { "value": "National average:" } }
+},
+{
+  "mark": { "type": "text", "align": "left", "baseline": "top", "dx": 136, "dy": 60, "fontSize": 12 },
+  "encoding": { "x": { "value": 500 }, "y": { "value": 60 }, "text": { "field": "line_nat_val" } }
+}
+
+      ]
+    }
+  ],
+
+  "config": { "legend": { "orient": "right" }, "view": { "stroke": null } }
+}

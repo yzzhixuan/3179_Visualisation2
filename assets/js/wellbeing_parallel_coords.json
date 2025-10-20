@@ -1,0 +1,219 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "title": null,
+  "width": "container",
+  "height": 585,
+  "background": "white",
+
+  "params": [
+    {
+      "name": "YearSel",
+      "value": 2022,
+      "bind": {"input": "select", "name": "Year: ", "options": [2016, 2019, 2022]}
+    },
+    {
+      "name": "StateSel",
+      "value": "Selangor",
+      "bind": {
+        "input": "select",
+        "name": "Highlight state: ",
+        "options": [
+          "Johor","Kedah","Kelantan","Melaka","Negeri Sembilan","Pahang","Perak","Perlis",
+          "Pulau Pinang","Sabah","Sarawak","Selangor","Terengganu",
+          "W.P. Kuala Lumpur","W.P. Labuan","W.P. Putrajaya"
+        ]
+      }
+    }
+  ],
+
+  "data": {"url": "assets/data/wellbeing_state_year.csv", "format": {"type": "csv"}},
+
+  "transform": [
+    {"calculate": "toNumber(datum.year)", "as": "year_num"},
+    {"filter": "datum.year_num == YearSel"},
+
+    {"fold": ["income_median","edu_upper_both","poverty","gini"], "as": ["key","raw"]},
+
+    {
+      "calculate": "datum.key=='income_median' ? 'Income (RM, median)' : datum.key=='edu_upper_both' ? 'Equality (Gini index)' : datum.key=='poverty' ? 'Poverty (%)' : 'Education (%)'",
+      "as": "Indicator_tmp"
+    },
+    {
+      "calculate": "datum.key=='income_median' ? 'Income (RM, median)' : datum.key=='gini' ? 'Equality (Gini index)' : datum.key=='poverty' ? 'Poverty (%)' : 'Education (%)'",
+      "as": "Indicator"
+    },
+
+    {"calculate": "toNumber(datum.raw)", "as": "rawNum"},
+
+    {
+      "window": [
+        {"op":"min","field":"rawNum","as":"minVal"},
+        {"op":"max","field":"rawNum","as":"maxVal"}
+      ],
+      "frame":[null,null],
+      "groupby":["key"]
+    },
+
+    {"calculate": "(datum.minVal + datum.maxVal)/2", "as": "midVal"},
+
+    {
+      "calculate": "datum.maxVal==datum.minVal ? 1 : (datum.rawNum - datum.minVal)/(datum.maxVal - datum.minVal)",
+      "as":"norm0"
+    },
+    {
+      "calculate": "(datum.key=='poverty' || datum.key=='gini') ? 1 - datum.norm0 : datum.norm0",
+      "as":"score"
+    },
+
+    {
+      "calculate": "datum.key=='income_median' ? format(datum.maxVal, ',.0f') : datum.key=='gini' ? format(datum.maxVal, '.3f') : format(datum.maxVal, '.1f')",
+      "as": "labelTop"
+    },
+    {
+      "calculate": "datum.key=='income_median' ? format(datum.midVal, ',.0f') : datum.key=='gini' ? format(datum.midVal, '.3f') : format(datum.midVal, '.1f')",
+      "as": "labelMid"
+    },
+    {
+      "calculate": "datum.key=='income_median' ? format(datum.minVal, ',.0f') : datum.key=='gini' ? format(datum.minVal, '.3f') : format(datum.minVal, '.1f')",
+      "as": "labelBot"
+    }
+  ],
+
+  "layer": [
+    
+    {
+      "mark": {"type": "rule", "color": "#ddd"},
+      "encoding": {
+        "x": {
+          "field": "Indicator",
+          "type": "nominal",
+          "sort": ["Income (RM, median)","Equality (Gini index)","Poverty (%)","Education (%)"],
+          "axis": {
+            "labelAngle": 0,
+                        "labelFontSize": 12,    
+        "titleFontSize": 12,     
+            "title": "Wellbeing Dimensions",
+            "titlePadding": 18   
+          }
+        },
+        "y": {"value": 0},
+        "y2": {"value": 420},
+        "detail": {"aggregate": "count"}
+      }
+    },
+
+    
+    {
+      "mark": {"type": "line"},
+      "encoding": {
+        "x": {
+          "field": "Indicator",
+          "type": "nominal",
+          "sort": ["Income (RM, median)","Equality (Gini index)","Poverty (%)","Education (%)"]
+        },
+        "y": {
+          "field": "score",
+          "type": "quantitative",
+          "title": "Normalised score (0–1)",
+          "scale": {"domain": [0, 1]},
+          "axis": {      "labelFontSize": 12,
+      "titleFontSize": 12,
+    "titleFontWeight": "bold", "titlePadding": 18 } 
+        },
+        "detail": {"field": "state"},
+        "stroke": {
+          "condition": {"test": "datum.state == StateSel", "value": "#d97706"},
+          "value": "#9ca3af"
+        },
+        "strokeWidth": {
+          "condition": {"test": "datum.state == StateSel", "value": 3},
+          "value": 1.2
+        },
+        "opacity": {"value": 0.55}
+      }
+    },
+
+    
+    {
+      "mark": {"type": "point", "filled": true},
+      "encoding": {
+        "x": {
+          "field": "Indicator",
+          "type": "nominal",
+          "sort": ["Income (RM, median)","Equality (Gini index)","Poverty (%)","Education (%)"]
+        },
+        "y": {"field": "score", "type": "quantitative", "axis": null},
+        "detail": {"field": "state"},
+        "fill": {
+          "condition": {"test": "datum.state == StateSel", "value": "#d97706"},
+          "value": "#6b7280"
+        },
+        "size": {
+          "condition": {"test": "datum.state == StateSel", "value": 70},
+          "value": 35
+        },
+        "tooltip": [
+          {"field":"state","title":"State"},
+          {"field":"year_num","title":"Year"},
+          {"field":"Indicator","title":"Metric"},
+          {"field":"rawNum","title":"Raw value","format": ",.2f"},
+          {"field":"score","title":"Normalised (0–1)","format": ".2f"}
+        ]
+      }
+    },
+
+   
+    {
+      "transform": [
+        {"filter": "datum.state == StateSel"},
+        {"filter": "datum.Indicator == 'Education (%)'"}
+      ],
+      "mark": {"type": "text", "dx": 8, "dy": -6, "align": "left", "fontSize": 11, "fontWeight": "600", "color": "#374151"},
+      "encoding": {
+        "x": {"field": "Indicator"},
+        "y": {"field": "score", "axis": null},
+        "text": {"field": "state"}
+      }
+    },
+
+    
+{
+  "transform": [{"aggregate": [{"op":"max","field":"labelTop","as":"labelTop"}], "groupby": ["Indicator"]}],
+  "encoding": { "x": {"type":"nominal","field":"Indicator"}, "y": {"value": 0} },
+  "layer": [
+    { "mark": {"type":"text","align":"right","dx":-6,"baseline":"middle","color":"#444","fontSize":10,"fontWeight":"normal"},
+      "encoding": { "text": {"field":"labelTop"} } },
+    { "mark": {"type":"tick","size":8,"color":"#ccc"} }
+  ]
+},
+{
+  "transform": [{"aggregate": [{"op":"max","field":"labelMid","as":"labelMid"}], "groupby": ["Indicator"]}],
+  "encoding": { "x": {"type":"nominal","field":"Indicator"}, "y": {"value": 210} },
+  "layer": [
+    { "mark": {"type":"text","align":"right","dx":-6,"baseline":"middle","color":"#444","fontSize":10,"fontWeight":"normal"},
+      "encoding": { "text": {"field":"labelMid"} } },
+    { "mark": {"type":"tick","size":8,"color":"#ccc"} }
+  ]
+}
+,
+{
+  "transform": [{"aggregate": [{"op":"max","field":"labelBot","as":"labelBot"}], "groupby": ["Indicator"]}],
+  "encoding": { "x": {"type":"nominal","field":"Indicator"}, "y": {"value": 420} },
+  "layer": [
+    { "mark": {"type":"text","align":"right","dx":-6,"baseline":"middle","color":"#444","fontSize":10,"fontWeight":"normal"},
+      "encoding": { "text": {"field":"labelBot"} } },
+    { "mark": {"type":"tick","size":8,"color":"#ccc"} }
+  ]
+}
+
+  ],
+
+  "resolve": { "scale": { "y": "shared" } },
+
+  "config": {
+    "view": {"stroke": null},
+    "axis": {"grid": true, "labelAngle": 0}
+  }
+}
+
+

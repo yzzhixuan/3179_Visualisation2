@@ -1,0 +1,131 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "width": "container", "height": 520,
+  "data": { "url": "assets/data/gdp_annual_nominal_supply_sub.csv",
+            "format": { "type": "csv", "parse": { "date": "date" } } },
+
+  "params": [
+    {
+      "name": "YearSel",
+      "value": 2022,
+      "bind": {"input":"select","name":"Year: ",
+               "options":[2015,2016,2017,2018,2019,2020,2021,2022,2023]}
+    }
+  ],
+
+  "transform": [
+    {"filter":"datum.series==='abs'"},
+    {"filter":"year(datum.date)===YearSel"},
+
+    {"calculate":"length(split(datum.sector,'.'))","as":"depth"},
+    {"aggregate":[{"op":"sum","field":"value","as":"gdp_value"}],
+     "groupby":["sector","depth"]},
+
+    {"joinaggregate":[{"op":"sum","field":"gdp_value","as":"gdp_total"}]},
+    {"calculate":"datum.gdp_value/datum.gdp_total*100","as":"share_total"},
+
+    {"calculate":"split(datum.sector,'.')[0]","as":"top_level"},
+    {"calculate":"datum.depth===1 ? 'root' : join(slice(split(datum.sector,'.'),0,-1),'.')","as":"parent"},
+    {"joinaggregate":[{"op":"sum","field":"gdp_value","as":"parent_total"}], "groupby":["parent"]},
+    {"calculate":"datum.parent_total? datum.gdp_value/datum.parent_total*100 : 100","as":"share_parent"},
+
+
+    {"lookup":"sector",
+     "from":{"data":{"url":"assets/data/gdp_lookup.csv","format":{"type":"csv"}},
+             "key":"code","fields":["desc_en","method"]}},
+    {"filter":"datum.method==='production'"},
+
+    {"lookup":"top_level",
+     "from":{"data":{"url":"assets/data/gdp_lookup.csv","format":{"type":"csv"}},
+             "key":"code","fields":["desc_en"]},
+     "as":["top_desc_en"]}
+  ],
+
+  "layer": [
+    
+    {
+      "transform":[{"filter":"datum.depth===1 && datum.sector!=='p0'"}],
+      "mark":{"type":"arc","innerRadius":75,"outerRadius":135,"stroke":"white","strokeWidth":1},
+      "encoding":{
+        "theta":{"field":"gdp_value","type":"quantitative","sort":{"field":"gdp_value","order":"descending"}},
+        "color":{
+          "field":"top_desc_en","type":"nominal","title":"Sector",
+          "scale":{"domain":["Agriculture","Mining and quarrying","Manufacturing","Construction","Services"],
+                   "range":["#1f77b4","#ff7f0e","#2ca02c","#f2c200","#9467bd","#8c564b"]}
+        },
+        "tooltip":[
+          {"field":"desc_en","title":"Sector"},
+          {"field":"gdp_value","type":"quantitative","title":"GDP (RM mil)","format":",.0f"},
+          {"field":"share_total","type":"quantitative","title":"Share of total (%)","format":".1f"}
+        ]
+      }
+    },
+
+
+
+
+    {
+      "transform":[{"filter":"datum.depth===2"}],
+      "mark":{"type":"arc","innerRadius":140,"outerRadius":200,"stroke":"white","strokeWidth":1},
+      "encoding":{
+        "theta":{"field":"gdp_value","type":"quantitative","sort":{"field":"gdp_value","order":"descending"}},
+        "color":{"field":"top_desc_en","type":"nominal"},
+        "tooltip":[
+          {"field":"desc_en","title":"Sub-sector"},
+          {"field":"gdp_value","type":"quantitative","title":"GDP (RM mil)","format":",.0f"},
+          {"field":"share_parent","type":"quantitative","title":"Share in parent (%)","format":".1f"}
+        ],
+        "opacity":{"condition":{"test":"datum.share_parent>=2","value":1},"value":0.25}
+      }
+    },
+
+
+    {
+      "transform":[{"filter":"datum.depth===3"}],
+      "mark":{"type":"arc","innerRadius":205,"outerRadius":230,"stroke":"white","strokeWidth":1},
+      "encoding":{
+        "theta":{"field":"gdp_value","type":"quantitative","sort":{"field":"gdp_value","order":"descending"}},
+        "color":{"field":"top_desc_en","type":"nominal"},
+        "tooltip":[
+          {"field":"desc_en","title":"Detailed industry"},
+          {"field":"gdp_value","type":"quantitative","title":"GDP (RM mil)","format":",.0f"},
+          {"field":"share_parent","type":"quantitative","title":"Share in parent (%)","format":".1f"}
+        ],
+        "opacity":{"condition":{"test":"datum.share_parent>=2","value":0.8},"value":0.15}
+      }
+    },
+
+
+{
+  "transform": [
+    {"aggregate":[{"op":"sum","field":"gdp_value","as":"tot"}]},
+    {"calculate":"'RM ' + format(datum.tot,',.0f') + ' mil'","as":"tot_label"}
+  ],
+  "mark":{"type":"text","fontSize":16,"fontWeight":"bold","align":"center"},
+  "encoding":{
+    "x":{"expr":"width/2"},
+    "y":{"expr":"height/2"},
+    "text":{"field":"tot_label"}
+  }
+},
+{
+  "transform":[{"calculate":"toString(YearSel)","as":"year_label"}],
+  "mark":{"type":"text","dy":20,"fontSize":13,"fill":"#555","align":"center"},
+  "encoding":{
+    "x":{"expr":"width/2"},
+    "y":{"expr":"height/2"},
+    "text":{"field":"year_label"}
+  }
+}
+
+  ],
+
+  "title":null,
+  "view":{"stroke":null},
+  "config":{
+        "titleFontSize": 14,   
+    "labelFontSize": 15,  
+    "titleFontWeight": "bold",
+    "symbolSize": 200,    
+    "legend":{"titleLimit":300,"labelLimit":300}}
+}

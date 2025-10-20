@@ -1,0 +1,102 @@
+{
+  "$schema": "https://vega.github.io/schema/vega-lite/v5.json",
+  "width": "container",
+  "height": 590,
+  "autosize": { "type": "fit", "contains": "padding", "resize": true },
+
+  "data": {
+    "url": "assets/data/hh_income_state.csv",
+    "format": { "type": "csv", "parse": { "year": "number", "income_median": "number" } }
+  },
+
+  "encoding": {
+    "x": { "field": "year", "type": "ordinal", "sort": "ascending", "title": "Year", "axis": { "labelAngle": 0 ,
+      "labelFontSize": 12,  
+      "titleFontSize": 12,   
+      "titlePadding": 15} },
+    "y": { "field": "rank", "type": "quantitative", "title": "Income Rank", "scale": { "reverse": true },
+    "axis": {
+      "labelFontSize": 12,
+      "titleFontSize": 12,
+      "titlePadding": 10
+    } },
+    "color": {
+      "field": "state", "type": "nominal", "title": "State",
+      "legend": null,
+      "scale": {
+        "range": [
+          "#4E79A7","#A0CBE8","#F28E2B","#FFBE7D","#0072B2",
+          "#56B4E9","#B6992D","#F1CE63","#CC79A7","#E69F00",
+          "#E15759","#FF9D9A","#79706E","#BAB0AC","#D37295",
+          "#FABFD2","#B07AA1","#D4A6C8","#9D7660","#D7B5A6"
+        ]
+      }
+    },
+    "tooltip": [
+      { "field": "state", "title": "State" },
+      { "field": "year", "title": "Year" },
+      { "field": "income_median", "title": "Median income (RM)", "type": "quantitative", "format": ",.0f" },
+      { "field": "rank", "title": "Rank", "type": "quantitative" }
+    ]
+  },
+
+  "transform": [
+    { "filter": "isValid(datum.income_median)" },
+    { "filter": "datum.state != 'Malaysia'" },
+    {
+      "window": [{ "op": "rank", "as": "rank" }],
+      "sort": [{ "field": "income_median", "order": "descending" }],
+      "groupby": ["year"]
+    },
+    {
+      "joinaggregate": [
+        { "op": "min", "field": "year", "as": "first_year" },
+        { "op": "max", "field": "year", "as": "last_year" }
+      ],
+      "groupby": ["state"]
+    }
+  ],
+
+  "layer": [
+    
+    {
+      "params": [
+        {
+          "name": "HoverState",
+          "select": { "type": "point", "fields": ["state"], "on": "mouseover", "clear": "mouseout" }
+        }
+      ],
+      "mark": { "type": "point", "opacity": 0, "size": 60 },
+      "encoding": { "detail": { "field": "state" } }
+    },
+
+    
+    {
+      "mark": { "type": "line", "strokeWidth": 0.8 },
+      "encoding": {
+        "detail": { "field": "state" },
+        "order": { "field": "year", "type": "ordinal" },
+        "opacity": { "condition": { "param": "HoverState", "value": 1 }, "value": 0.15 },
+        "size": { "condition": { "param": "HoverState", "value": 3 }, "value": 1.5 }
+      }
+    },
+
+   
+    {
+      "mark": { "type": "point", "filled": true },
+      "encoding": {
+        "opacity": { "condition": { "param": "HoverState", "value": 1 }, "value": 0.35 },
+        "size":   { "condition": { "param": "HoverState", "value": 60 }, "value": 36 }
+      }
+    },
+
+    
+    {
+      "transform": [{ "filter": "datum.year == datum.last_year" }],
+      "mark": { "type": "text", "align": "left", "baseline": "middle", "dx": 45, "fontSize": 12 },
+      "encoding": { "text": { "field": "state" } }
+    }
+  ],
+
+  "title": null
+}
